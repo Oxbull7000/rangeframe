@@ -45,7 +45,7 @@ export function RangeApp() {
   const pool = allowlistedPools.find((item) => item.id === poolId) ?? allowlistedPools[0];
   const [lower, setLower] = useState(171);
   const [upper, setUpper] = useState(199);
-  const [deposit, setDeposit] = useState(2.5);
+  const [deposit, setDeposit] = useState(0.03);
   const [slippage, setSlippage] = useState(0.5);
   const [stage, dispatch] = useReducer(transactionReducer, "idle");
 
@@ -127,7 +127,16 @@ export function RangeApp() {
           <div className="builder-controls">
             <label className="field"><span>Lower price</span><input value={lower} onChange={(e) => setLower(Number(e.target.value))} type="number" /></label>
             <label className="field"><span>Upper price</span><input value={upper} onChange={(e) => setUpper(Number(e.target.value))} type="number" /></label>
-            <label className="field"><span>Deposit {pool.baseSymbol}</span><input value={deposit} onChange={(e) => setDeposit(Number(e.target.value))} type="number" /></label>
+            <label className="field">
+              <span>Deposit {pool.baseSymbol}</span>
+              <input
+                value={deposit}
+                onChange={(e) => setDeposit(Number(e.target.value))}
+                type="number"
+                min={0.001}
+                step={0.001}
+              />
+            </label>
           </div>
 
           <section className="frame-health-board">

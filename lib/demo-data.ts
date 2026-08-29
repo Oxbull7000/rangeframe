@@ -15,7 +15,7 @@ export const market = {
   tickPriceSpacing: 0.05,
   tvl: "Unavailable",
   volume: "Unavailable",
-  depositSol: 2.5,
+  depositSol: 0.03,
   counterpartUsdc: 461.2,
   slippage: 0.5,
   wallet: "8xF2...91Qa",

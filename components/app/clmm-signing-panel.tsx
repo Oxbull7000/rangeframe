@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, CheckCircle, FrameCorners, LockKey, WarningCircle } from "@phosphor-icons/react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import type { PoolSummary } from "@/lib/pools";
@@ -37,6 +37,13 @@ export function ClmmSigningPanel({ pool, lower, upper, deposit, slippage, onSlip
   const [status, setStatus] = useState("");
 
   const slippageBps = useMemo(() => Math.max(1, Math.round(slippage * 100)), [slippage]);
+
+  useEffect(() => {
+    setPreparedTx(null);
+    setSignedTx(null);
+    setMeta(null);
+    setStatus("");
+  }, [pool.id, lower, upper, deposit, slippage]);
 
   async function prepare(): Promise<DecodedTransaction | null> {
     if (!publicKey) {
@@ -153,6 +160,7 @@ export function ClmmSigningPanel({ pool, lower, upper, deposit, slippage, onSlip
     <>
       <div className="panel-title"><LockKey size={17} /> Signing snapshot</div>
       <div className="snapshot-grid">
+        <Metric label="Deposit" value={`${deposit} ${pool.baseSymbol}`} />
         <Metric label="Lower" value={lower.toFixed(2)} />
         <Metric label="Upper" value={upper.toFixed(2)} />
         <Metric label="Slippage" value={`${slippage.toFixed(1)}%`} />
@@ -189,7 +197,7 @@ export function ClmmSigningPanel({ pool, lower, upper, deposit, slippage, onSlip
         </p>
       ) : null}
       {status ? <p className="clmm-status-line" role="status">{status}</p> : null}
-      <p><WarningCircle size={15} /> Prepare uses Raydium SDK V0 transactions. Your wallet signs; RangeFrame never broadcasts automatically.</p>
+      <p><WarningCircle size={15} /> Prepare uses your deposit amount ({deposit} {pool.baseSymbol}) plus small rent for the position NFT. Re-prepare after changing deposit or range.</p>
     </>
   );
 }
