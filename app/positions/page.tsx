@@ -55,7 +55,7 @@ export default function PositionsPage() {
           </div>
           <h1>Active Position Frames</h1>
           <p>
-            Inspect on-chain Raydium CLMM positions owned by your connected wallet. Prepare, preview, and broadcast close transactions without giving up custody.
+            Inspect on-chain Raydium CLMM positions owned by your connected wallet. Prepare and approve close transactions in your wallet without giving up custody.
           </p>
         </div>
 

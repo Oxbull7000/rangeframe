@@ -3,8 +3,12 @@ import { ArrowLeft, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 import { AppNav } from "@/components/app/app-nav";
 import { demoPositions } from "@/lib/positions";
 
-export default async function PositionDetailPage(props: PageProps<"/positions/[position]">) {
-  const { position: positionId } = await props.params;
+type PositionDetailPageProps = {
+  params: Promise<{ position: string }>;
+};
+
+export default async function PositionDetailPage({ params }: PositionDetailPageProps) {
+  const { position: positionId } = await params;
   const position = demoPositions.find((item) => item.id === positionId) ?? demoPositions[0];
 
   return (

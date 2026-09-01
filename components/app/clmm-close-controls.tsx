@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { WarningCircle } from "@phosphor-icons/react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { broadcastSignedTransaction, decodePreparedTransaction, signPreparedTransaction, solscanTxUrl } from "@/lib/raydium/clmm-wallet";
+import { decodePreparedTransaction, sendPreparedTransaction, solscanTxUrl } from "@/lib/raydium/clmm-wallet";
 import type { DecodedTransaction } from "@/lib/raydium/clmm-wallet";
 
 export type WalletClmmPosition = {
@@ -22,7 +22,7 @@ type ClmmCloseControlsProps = {
 
 export function ClmmCloseControls({ position, onClosed }: ClmmCloseControlsProps) {
   const { connection } = useConnection();
-  const { publicKey, signTransaction } = useWallet();
+  const { publicKey, sendTransaction } = useWallet();
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState("");
   const [minOut, setMinOut] = useState<{ amountA: string; amountB: string; slippageBps: number } | null>(null);
@@ -60,7 +60,7 @@ export function ClmmCloseControls({ position, onClosed }: ClmmCloseControlsProps
       const tx = decodePreparedTransaction(data.transactionBase64);
       setPreparedTx(tx);
       setMinOut(data.minimumWithdrawal ?? null);
-      setStatus("Close prepared. Preview or broadcast when ready.");
+      setStatus("Close prepared. Approve in your wallet when ready — Phantom shows the preview.");
       return tx;
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Prepare failed.");
@@ -70,30 +70,19 @@ export function ClmmCloseControls({ position, onClosed }: ClmmCloseControlsProps
     }
   }, [position.nftMint, position.poolId, publicKey]);
 
-  async function preview() {
-    if (!signTransaction) return;
-    const tx = preparedTx ?? (await prepare());
-    if (!tx) return;
-
-    try {
-      await signPreparedTransaction(tx, signTransaction);
-      setStatus("Wallet signed preview. Nothing broadcast.");
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Preview rejected.");
-    }
-  }
-
   async function broadcast() {
-    if (!signTransaction) return;
+    if (!sendTransaction) {
+      setStatus("Wallet does not support sending transactions.");
+      return;
+    }
     if (!window.confirm("Close this position? Liquidity will be withdrawn and the position account closed.")) return;
 
-    let tx = preparedTx ?? (await prepare());
+    const tx = preparedTx ?? (await prepare());
     if (!tx) return;
 
     setBusy(true);
     try {
-      tx = await signPreparedTransaction(tx, signTransaction);
-      const signature = await broadcastSignedTransaction(connection, tx);
+      const signature = await sendPreparedTransaction(tx, connection, sendTransaction);
       setStatus(`Closed: ${signature.slice(0, 8)}…`);
       onClosed?.();
       window.open(solscanTxUrl(signature), "_blank", "noopener,noreferrer");
@@ -115,11 +104,8 @@ export function ClmmCloseControls({ position, onClosed }: ClmmCloseControlsProps
         <button type="button" className="btn secondary text-xs py-1.5 px-3" disabled={busy} onClick={() => void prepare()}>
           Prepare close
         </button>
-        <button type="button" className="btn secondary text-xs py-1.5 px-3" disabled={busy} onClick={() => void preview()}>
-          Preview
-        </button>
         <button type="button" className="btn text-xs py-1.5 px-3" disabled={busy} onClick={() => void broadcast()}>
-          Broadcast close
+          Approve &amp; close
         </button>
       </div>
       {status ? <p className="clmm-status-line" role="status">{status}</p> : null}

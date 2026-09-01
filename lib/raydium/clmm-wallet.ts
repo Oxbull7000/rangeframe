@@ -11,15 +11,18 @@ export function decodePreparedTransaction(encoded: string) {
   return decodeTransactionBase64(encoded);
 }
 
-export async function signPreparedTransaction(
+/**
+ * Send a server-prepared transaction through the wallet adapter.
+ * Delegates to Phantom's native signAndSendTransaction when available,
+ * which reduces Blowfish "malicious dApp" false positives vs raw
+ * signTransaction + sendRawTransaction.
+ */
+export async function sendPreparedTransaction(
   tx: DecodedTransaction,
-  signTransaction: NonNullable<WalletContextState["signTransaction"]>
+  connection: Connection,
+  sendTransaction: NonNullable<WalletContextState["sendTransaction"]>
 ) {
-  return signTransaction(tx);
-}
-
-export async function broadcastSignedTransaction(connection: Connection, tx: DecodedTransaction) {
-  const signature = await connection.sendRawTransaction(tx.serialize(), { skipPreflight: false });
+  const signature = await sendTransaction(tx, connection, { skipPreflight: false });
   await connection.confirmTransaction(signature, "confirmed");
   return signature;
 }

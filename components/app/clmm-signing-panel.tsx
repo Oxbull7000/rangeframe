@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ArrowRight, CheckCircle, FrameCorners, LockKey, WarningCircle } from "@phosphor-icons/react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import type { PoolSummary } from "@/lib/pools";
-import { broadcastSignedTransaction, decodePreparedTransaction, signPreparedTransaction, solscanTxUrl } from "@/lib/raydium/clmm-wallet";
+import { decodePreparedTransaction, sendPreparedTransaction, solscanTxUrl } from "@/lib/raydium/clmm-wallet";
 import { transactionLabels, transactionReducer, type TransactionStage } from "@/lib/transactions";
 import type { DecodedTransaction } from "@/lib/raydium/clmm-wallet";
 
@@ -29,10 +29,9 @@ type ClmmSigningPanelProps = {
 
 export function ClmmSigningPanel({ pool, lower, upper, deposit, slippage, onSlippageChange, stage, dispatch }: ClmmSigningPanelProps) {
   const { connection } = useConnection();
-  const { publicKey, signTransaction } = useWallet();
+  const { publicKey, sendTransaction } = useWallet();
   const [busy, setBusy] = useState(false);
   const [preparedTx, setPreparedTx] = useState<DecodedTransaction | null>(null);
-  const [signedTx, setSignedTx] = useState<DecodedTransaction | null>(null);
   const [meta, setMeta] = useState<PrepareMeta | null>(null);
   const [status, setStatus] = useState("");
 
@@ -40,7 +39,6 @@ export function ClmmSigningPanel({ pool, lower, upper, deposit, slippage, onSlip
 
   useEffect(() => {
     setPreparedTx(null);
-    setSignedTx(null);
     setMeta(null);
     setStatus("");
   }, [pool.id, lower, upper, deposit, slippage]);
@@ -79,13 +77,12 @@ export function ClmmSigningPanel({ pool, lower, upper, deposit, slippage, onSlip
 
       const tx = decodePreparedTransaction(data.transactionBase64);
       setPreparedTx(tx);
-      setSignedTx(null);
       setMeta({ nftMint: data.position?.nftMint, simulationErr: data.simulation?.err });
       dispatch({ type: "READY" });
       setStatus(
         data.simulation?.err
-          ? "Prepared with simulation warnings. Preview before broadcasting."
-          : "Transaction prepared. Preview in your wallet or broadcast when ready."
+          ? "Prepared with simulation warnings. Review carefully in your wallet before approving."
+          : "Transaction prepared. Phantom will show a full preview when you approve."
       );
       return tx;
     } catch (error) {
@@ -97,52 +94,20 @@ export function ClmmSigningPanel({ pool, lower, upper, deposit, slippage, onSlip
     }
   }
 
-  async function preview() {
-    if (!signTransaction) {
-      setStatus("Wallet does not support transaction preview.");
+  async function broadcast() {
+    if (!sendTransaction) {
+      setStatus("Wallet does not support sending transactions.");
       return;
     }
 
     const tx = preparedTx ?? (await prepare());
     if (!tx) return;
 
-    dispatch({ type: "REQUEST_SIGNATURE" });
-    try {
-      const signed = await signPreparedTransaction(tx, signTransaction);
-      setSignedTx(signed);
-      dispatch({ type: "READY" });
-      setStatus("Wallet signed the preview. Nothing has been broadcast yet.");
-    } catch (error) {
-      dispatch({ type: "FAIL" });
-      setStatus(error instanceof Error ? error.message : "Preview rejected.");
-    }
-  }
-
-  async function broadcast() {
-    if (!signTransaction) {
-      setStatus("Wallet does not support signing.");
-      return;
-    }
-
-    let tx = signedTx ?? preparedTx ?? (await prepare());
-    if (!tx) return;
-
-    if (!signedTx) {
-      dispatch({ type: "REQUEST_SIGNATURE" });
-      try {
-        tx = await signPreparedTransaction(tx, signTransaction);
-        setSignedTx(tx);
-      } catch (error) {
-        dispatch({ type: "FAIL" });
-        setStatus(error instanceof Error ? error.message : "Sign rejected.");
-        return;
-      }
-    }
-
     setBusy(true);
+    dispatch({ type: "REQUEST_SIGNATURE" });
     dispatch({ type: "SUBMIT" });
     try {
-      const signature = await broadcastSignedTransaction(connection, tx);
+      const signature = await sendPreparedTransaction(tx, connection, sendTransaction);
       dispatch({ type: "CONFIRM" });
       dispatch({ type: "RESOLVE" });
       const explorerUrl = solscanTxUrl(signature);
@@ -179,14 +144,11 @@ export function ClmmSigningPanel({ pool, lower, upper, deposit, slippage, onSlip
       </div>
 
       <div className="clmm-action-stack">
-        <button className="btn" disabled={busy} onClick={() => void prepare()} style={{ width: "100%" }}>
+        <button className="btn secondary" disabled={busy} onClick={() => void prepare()} style={{ width: "100%" }}>
           Prepare transaction <ArrowRight size={16} />
         </button>
-        <button className="btn secondary" disabled={busy} onClick={() => void preview()} style={{ width: "100%" }}>
-          Preview in wallet
-        </button>
         <button className="btn" disabled={busy} onClick={() => void broadcast()} style={{ width: "100%" }}>
-          Broadcast position <ArrowRight size={16} />
+          Approve &amp; send in wallet <ArrowRight size={16} />
         </button>
       </div>
 
@@ -197,7 +159,7 @@ export function ClmmSigningPanel({ pool, lower, upper, deposit, slippage, onSlip
         </p>
       ) : null}
       {status ? <p className="clmm-status-line" role="status">{status}</p> : null}
-      <p><WarningCircle size={15} /> Prepare uses your deposit amount ({deposit} {pool.baseSymbol}) plus small rent for the position NFT. Re-prepare after changing deposit or range.</p>
+      <p><WarningCircle size={15} /> Prepare uses your deposit amount ({deposit} {pool.baseSymbol}) plus small rent for the position NFT. Re-prepare after changing deposit or range. Your wallet shows the full preview before anything is sent.</p>
     </>
   );
 }

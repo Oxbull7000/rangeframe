@@ -19,6 +19,13 @@ import {
 } from "@phosphor-icons/react";
 import { Brand } from "@/components/brand";
 
+const SOCIAL_LINKS = {
+  x: process.env.NEXT_PUBLIC_SOCIAL_X?.trim() || "",
+  discord: process.env.NEXT_PUBLIC_SOCIAL_DISCORD?.trim() || "",
+  github: process.env.NEXT_PUBLIC_SOCIAL_GITHUB?.trim() || "https://github.com/Oxbull7000/rangeframe",
+  solscan: "https://solscan.io/account/CAMMCzo5YL8w4VFF8KVHrK22GGUsp5VTaW7grrKgrWqK"
+} as const;
+
 export function Footer() {
   const [email, setEmail] = useState("");
   const [subscribed, setSubscribed] = useState(false);
@@ -111,16 +118,22 @@ export function Footer() {
             </form>
 
             <div className="footer-socials">
-              <a href="https://x.com" target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="X / Twitter">
-                <XLogo size={18} />
-              </a>
-              <a href="https://discord.com" target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="Discord">
-                <DiscordLogo size={18} />
-              </a>
-              <a href="https://github.com" target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="GitHub">
-                <GithubLogo size={18} />
-              </a>
-              <a href="https://solscan.io" target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="Solscan Explorer">
+              {SOCIAL_LINKS.x ? (
+                <a href={SOCIAL_LINKS.x} target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="X / Twitter">
+                  <XLogo size={18} />
+                </a>
+              ) : null}
+              {SOCIAL_LINKS.discord ? (
+                <a href={SOCIAL_LINKS.discord} target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="Discord">
+                  <DiscordLogo size={18} />
+                </a>
+              ) : null}
+              {SOCIAL_LINKS.github ? (
+                <a href={SOCIAL_LINKS.github} target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="GitHub">
+                  <GithubLogo size={18} />
+                </a>
+              ) : null}
+              <a href={SOCIAL_LINKS.solscan} target="_blank" rel="noopener noreferrer" className="social-icon" aria-label="Raydium CLMM on Solscan">
                 <Pulse size={18} />
               </a>
             </div>
